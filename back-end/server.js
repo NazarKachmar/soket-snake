@@ -1,7 +1,11 @@
 const FRONT_URL = "http://127.0.0.1:8080"
 const httpServer = require("http").createServer()
-const { createGameState, gameLoop, getUpdatedVelocity } =  require('./game')
+const { initGame, gameLoop, getUpdatedVelocity } =  require('./game')
 const { FRAME_RATE } =  require('./constants')
+const { makeId } =  require('./utils')
+
+const state = {};
+const clientRooms = {};
 
 const io = require('socket.io')(httpServer, {
   cors: {
@@ -12,10 +16,55 @@ const io = require('socket.io')(httpServer, {
 })
 
 io.on('connection', client =>{
-  const state = createGameState()
   client.on('keydown', handleKeyDown)
+  client.on('newGame', handleNewGame)
+  client.on('joinGame', handlejoinGame)
+
+  function handlejoinGame(gameCode){
+    const room = io.sockets.adapter.rooms[gameCode]
+    let allUsers, numClients
+    if (room) {
+      allUsers = room.sockets
+    }
+
+    if (allUsers) {
+      numClients = Object.keys(allUsers).length
+    }
+
+    if (numClients === 0) {
+      client.emit('unknownCode')
+      return
+    } else if (numClients > 1) {
+      client.emit('tooManyPlayers')
+      return
+    } else {
+      clientRooms[client.id] = gameCode
+      client.join(gameCode)
+      client.number = 2
+      client.emit('init', 2)
+      startGameInterval(gameCode)
+    }
+  }
+
+  function handleNewGame(){
+    let roomName = makeId(5)
+
+    clientRooms[client.id] = roomName
+    client.emit('gameCode', roomName)
+    state[roomName] = initGame()
+    client.join(roomName)
+    client.number = 1
+    client.emit('init', 1)
+    console.log(state)
+  }
 
   function handleKeyDown(keyCode) {
+    const roomName = clientRooms[client.id]
+
+    if (!roomName){
+      return
+    }
+
     try{
       keyCode = parseInt(keyCode)
     } catch(error){
@@ -25,23 +74,31 @@ io.on('connection', client =>{
 
     const vel = getUpdatedVelocity(keyCode)
     if (vel) {
-      state.player.vel = vel
+      state[roomName].players[client.number - 1].vel = vel
     }
   }
-
-  startGameInterval(client, state)
 })
 
-function startGameInterval(client, state) {
+function startGameInterval(gameCode) {
   const intervalID = setInterval(() => {
-    const winner = gameLoop(state)
+    const winner = gameLoop(state[gameCode])
     if(!winner){
-      client.emit('gameState', JSON.stringify(state))
+      emitGameState(gameCode, state[gameCode])
     } else {
-      client.emit('gameOver')
+      emitGameOver(gameCode, winner)
+      state[gameCode] = null
       clearInterval(intervalID)
     }
   }, 1000 / FRAME_RATE)
+}
+
+function emitGameState(roomName, state){
+  console.log(state, roomName)
+  io.sockets.in(roomName).emit('gameState', JSON.stringify(state))
+}
+
+function emitGameOver(roomName, winner){
+  io.sockets.in(roomName).emit('gameOver', JSON.stringify({ winner }))
 }
 
 io.listen(3000)
