@@ -31,7 +31,7 @@ io.on('connection', client =>{
       numClients = Object.keys(allUsers).length
     }
 
-    if (numClients === 0) {
+    if (numClients === 0 || numClients === undefined) {
       client.emit('unknownCode')
       return
     } else if (numClients > 1) {
@@ -55,7 +55,6 @@ io.on('connection', client =>{
     client.join(roomName)
     client.number = 1
     client.emit('init', 1)
-    console.log(state)
   }
 
   function handleKeyDown(keyCode) {
@@ -68,7 +67,6 @@ io.on('connection', client =>{
     try{
       keyCode = parseInt(keyCode)
     } catch(error){
-      console.log(error)
       return
     }
 
@@ -93,7 +91,6 @@ function startGameInterval(gameCode) {
 }
 
 function emitGameState(roomName, state){
-  console.log(state, roomName)
   io.sockets.in(roomName).emit('gameState', JSON.stringify(state))
 }
 

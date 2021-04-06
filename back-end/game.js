@@ -21,8 +21,8 @@ function createGameState() {
         { x: 3, y: 10 },
       ]
     },{
-      pos: { x: 15, y: 10 },
-      vel: { x: 0, y: 0 },
+      pos: { x: 18, y: 10 },
+      vel: { x: -1, y: 0 },
       snake: [
         { x: 20, y: 10 },
         { x: 19, y: 10 },
@@ -40,8 +40,8 @@ function gameLoop(state) {
   }
   const playerOne = state.players[0]
   const playerTwo = state.players[1]
-  playerOne.pos.x += playerOne.vel.x
-  playerOne.pos.y += playerOne.vel.y
+
+  updatePositions(playerOne, playerTwo)
 
   if (isOutOfField(playerOne)){
     return 2
@@ -86,6 +86,13 @@ function gameLoop(state) {
   }
 
   return false
+}
+
+function updatePositions(playerOne, playerTwo) {
+  playerOne.pos.x += playerOne.vel.x
+  playerOne.pos.y += playerOne.vel.y
+  playerTwo.pos.x += playerTwo.vel.x
+  playerTwo.pos.y += playerTwo.vel.y
 }
 
 function isOutOfField(player) {

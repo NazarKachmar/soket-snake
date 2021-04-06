@@ -33,6 +33,10 @@ function newGame() {
 }
 
 function joinGame() {
+  if (gameCodeInput.value.length != 6){
+    alert('Code length bad!')
+    return
+  }
   socket.emit('joinGame', gameCodeInput.value)
   initialize()
 }
@@ -89,7 +93,6 @@ function handleGameState(gameState) {
   }
 
   gameState = JSON.parse(gameState)
-  // console.log(gameState)
   requestAnimationFrame(() => renderGame(gameState) )
 }
 
@@ -106,6 +109,7 @@ function handleGameOver(data) {
   }
 
   gameActive = false
+  reset()
 }
 
 function handleGameCode(gameCode) {
@@ -124,8 +128,7 @@ function handleTooManyPlayers(gameCode) {
 function reset() {
   playerNumber = null
   gameCodeInput.value = ''
-  gameCodeDisplay.innerText('')
+  gameCodeDisplay.innerText = ''
   initialScreen.style.display = 'block'
   gameScreen.style.display = 'none'
 }
-// renderGame(gameState)
